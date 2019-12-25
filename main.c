@@ -107,13 +107,64 @@ void AnalysisWeight(uint16_t analysisPhaseTimes)
 
 int main()
 {
-    uint32_t maxPhase, i;
+    uint32_t  i;
 
     printf("**************Congratulations, make a big asset!**************\n");
 
-    for(i = ANALYSIS_PHASE-1; i < maxPhase; i++)
-    {
 
+    char filename[] = "D:\\ssq.csv"; //文件名
+    char *ptr;
+    FILE *fp;
+    char StrLine[1024];             //每行最大读取的字符数
+    if((fp = fopen(filename,"r")) == NULL) //判断文件是否存在及可读
+    {
+        printf("error!");
+        return -1;
+    }
+
+    i = 0;
+    feof(fp);
+    fgets(StrLine,1024,fp);  //读取一行
+    while (!feof(fp))
+    {
+        memset(StrLine, 0, 1024);
+        fgets(StrLine,1024,fp);  //读取一行
+
+        ptr = strrchr(StrLine, ',');
+        if(ptr == NULL)
+            continue;
+        ptr++;
+        ptr = strrchr(ptr, ',');
+        norNumDb[i][0] = atoi(ptr+2);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][1] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][2] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][3] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][4] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][5] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        specNumDb[i][0] = atoi(ptr);
+
+        printf("%d, %d, %d, %d, %d, %d, %d\n", norNumDb[i][0], norNumDb[i][1], norNumDb[i][2], norNumDb[i][3], norNumDb[i][4], norNumDb[i][5],
+                                                 specNumDb[i][0]); //输出
+        printf("%s\n", StrLine); //输出
+        i++;
     }
 
     return 0;
