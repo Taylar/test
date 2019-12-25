@@ -15,8 +15,8 @@
 #define ANALYSIS_PHASE      30
 #define WEIGHT_SUM      3
 
-uint8_t norNumDb[1024][NORMAL_NUM];
-uint8_t specNumDb[1024][SPE_NUM];
+uint8_t norNumDb[4096][NORMAL_NUM];
+uint8_t specNumDb[4096][SPE_NUM];
 
 
 // 检测有多少个数值符合
@@ -130,12 +130,13 @@ int main()
         memset(StrLine, 0, 1024);
         fgets(StrLine,1024,fp);  //读取一行
 
-        ptr = strrchr(StrLine, ',');
+        ptr = strstr(StrLine, ",");
         if(ptr == NULL)
-            continue;
+            break;
         ptr++;
-        ptr = strrchr(ptr, ',');
-        norNumDb[i][0] = atoi(ptr+2);
+        ptr = strstr(ptr, ",");
+        ptr++;
+        norNumDb[i][0] = atoi(ptr);
 
         ptr = strstr(ptr, "  ");
         ptr += 2;
@@ -165,6 +166,8 @@ int main()
                                                  specNumDb[i][0]); //输出
         printf("%s\n", StrLine); //输出
         i++;
+        if(i>=4095)
+            break;
     }
 
     return 0;
