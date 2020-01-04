@@ -109,13 +109,14 @@ int main()
 {
     uint32_t  i;
 
-    printf("**************Congratulations, make a big asset!**************\n");
+    printf("**************Congratulations**************\n");
 
 
-    char filename[] = "D:\\ssq.csv"; //文件名
+    char filename[100] = ".\\src\\python\\ssq.csv"; //文件名
     char *ptr;
     FILE *fp;
     char StrLine[1024];             //每行最大读取的字符数
+    //getcwd(filename,100);
     if((fp = fopen(filename,"r")) == NULL) //判断文件是否存在及可读
     {
         printf("error!");
