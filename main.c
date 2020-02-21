@@ -8,21 +8,27 @@
 
 #define  COMBINE_NUM                (SPE_NUM+NORMAL_NUM)
 
-#define  NORMAL_NUM_MAX             49
-#define  SPECIAL_NUM_MAX            49
+#define  NORMAL_NUM_MAX             50
+#define  SPECIAL_NUM_MAX            50
 
 
-#define ANALYSIS_PHASE      30
+#define ANALYSIS_PHASE      50
 #define WEIGHT_SUM      3
 
-uint8_t norNumDb[1024][NORMAL_NUM];
-uint8_t specNumDb[1024][SPE_NUM];
+int norNumDb[4096][NORMAL_NUM];
+int specNumDb[4096][SPE_NUM];
+uint32_t maxPhase;
+
+// int SPE_WEIGHT_LIST[SPE_NUM][10] = {
+//     {0,1,,},
+// }
 
 
-// Ê£ÄÊµãÊúâÂ§öÂ∞ë‰∏™Êï∞ÂÄºÁ¨¶Âêà
-uint16_t CheckNum(uint8_t *norSrcData, uint8_t *norDstData, uint8_t *speSrcData, uint8_t *speDstData)
+
+// ºÏ≤‚”–∂‡…Ÿ∏ˆ ˝÷µ∑˚∫œ
+uint16_t CheckNum(int *norSrcData, int *norDstData, int *speSrcData, int *speDstData)
 {
-    uint8_t i, j, Cnt = 0;
+    int i, j, Cnt = 0;
 
 
     for(i = 0; i < NORMAL_NUM; i++)
@@ -41,8 +47,8 @@ uint16_t CheckNum(uint8_t *norSrcData, uint8_t *norDstData, uint8_t *speSrcData,
     return Cnt;
 }
 
-// Ê£ÄÊü•ÊåáÂÆöÊï∞ÈáèÊúâÂá†‰∏™Á¨¶ÂêàÁõÆÊ†á
-uint16_t CheckTheAimNormalNum(uint8_t *srcData, uint8_t *dstData, uint8_t CheckNum)
+// ºÏ≤È÷∏∂® ˝¡ø”–º∏∏ˆ∑˚∫œƒø±Í
+uint16_t CheckTheAimNormalNum(int *srcData, int *dstData, int CheckNum)
 {
     uint16_t i, j, luckyCnt = 0;
     for(i = 0; i < NORMAL_NUM; i++)
@@ -59,20 +65,20 @@ uint16_t CheckTheAimNormalNum(uint8_t *srcData, uint8_t *dstData, uint8_t CheckN
     return luckyCnt;
 }
 
-// Ëé∑Âèñ‰∏ÄÊÆµÂå∫Èó¥ÂÜÖÁöÑÁªüËÆ°Êï∞ÊçÆ
-void GetDataSum(uint32_t startPhase, uint32_t endPhase, uint8_t *normalSum, uint8_t* speSum)
+// ªÒ»°“ª∂Œ«¯º‰ƒ⁄µƒÕ≥º∆ ˝æ›
+void GetDataSum(uint32_t startPhase, uint32_t endPhase, int *normalSum, int* speSum)
 {
     uint32_t i, j;
 
-    memset(normalSum, 0, NORMAL_NUM_MAX);
-    memset(speSum, 0, SPECIAL_NUM_MAX);
+    memset(normalSum, 0, sizeof(int)*NORMAL_NUM_MAX);
+    memset(speSum, 0, sizeof(int)*SPECIAL_NUM_MAX);
 
     for(i = startPhase; i <= endPhase; i++)
     {
         for(j = 0; j < (NORMAL_NUM); j++)
         {
-            normalSum[norNumDb[i][j]-1]++;
-            speSum[specNumDb[i][j]-1]++;
+            normalSum[norNumDb[i][j]]++;
+            speSum[specNumDb[i][j]]++;
         }
     }
 
@@ -80,39 +86,226 @@ void GetDataSum(uint32_t startPhase, uint32_t endPhase, uint8_t *normalSum, uint
 }
 
 
-uint8_t* GetWeight(uint8_t * sumData)
+void GetSpeWeight(int * sumData, int *weightSum)
 {
     uint16_t i, j;
-    static uint8_t weightSum[NORMAL_NUM_MAX];
-    memset(weightSum, 0, NORMAL_NUM_MAX);
-    for(i = WEIGHT_SUM/2; i < NORMAL_NUM_MAX-(WEIGHT_SUM/2); i++)
+    memset(weightSum, 0, sizeof(int)*SPECIAL_NUM_MAX);
+    for(i = 0; i < SPECIAL_NUM_MAX-(WEIGHT_SUM/2); i++)
     {
-        for(j = i-(WEIGHT_SUM/2); j < WEIGHT_SUM; j++)
-        {
-            weightSum[i] += sumData[j];
+        if(i >= (WEIGHT_SUM/2)){
+            for(j = i; j < i+(WEIGHT_SUM/2); j++){
+                weightSum[i] += sumData[j];
+            }
+        }
+        else{
+            for(j = i-(WEIGHT_SUM/2); j < i+(WEIGHT_SUM/2); j++){
+                weightSum[i] += sumData[j];
+            }
         }
     }
-    return weightSum;
 }
+
+void GetNormalWeight(int * sumData, int *weightSum)
+{
+    uint16_t i, j;
+    memset(weightSum, 0, sizeof(int)*NORMAL_NUM_MAX);
+    for(i = 0; i < NORMAL_NUM_MAX-(WEIGHT_SUM/2); i++)
+    {
+        if(i >= (WEIGHT_SUM/2)){
+            for(j = i; j < i+(WEIGHT_SUM/2); j++){
+                weightSum[i] += sumData[j];
+            }
+        }
+        else{
+            for(j = i-(WEIGHT_SUM/2); j < i+(WEIGHT_SUM/2); j++){
+                weightSum[i] += sumData[j];
+            }
+        }
+    }
+}
+
 
 void AnalysisWeight(uint16_t analysisPhaseTimes)
 {
-    uint8_t normalTemp[NORMAL_NUM_MAX], specTemp[NORMAL_NUM_MAX];
+    int normalTemp[NORMAL_NUM_MAX], specTemp[SPECIAL_NUM_MAX];
     GetDataSum(0, ANALYSIS_PHASE, normalTemp, specTemp);
 }
 
+void GetTheSSQ_Data(void)
+{
+    char filename[100] = ".\\src\\python\\ssq.csv"; //Œƒº˛√˚
+    char *ptr;
+    FILE *fp;
+    char StrLine[1024];             //√ø––◊Ó¥Û∂¡»°µƒ◊÷∑˚ ˝
+    uint32_t i, j;
+    int  dataTemp[COMBINE_NUM];
+    //getcwd(filename,100);
+    if((fp = fopen(filename,"r")) == NULL) //≈–∂œŒƒº˛ «∑Ò¥Ê‘⁄º∞ø…∂¡
+    {
+        printf("error!");
+        return;
+    }
 
+    i = 0;
+    feof(fp);
+    fgets(StrLine,1024,fp);  //∂¡»°“ª––
+    while (!feof(fp))
+    {
+        memset(StrLine, 0, 1024);
+        fgets(StrLine,1024,fp);  //∂¡»°“ª––
 
+        ptr = strstr(StrLine, ",");
+        if(ptr == NULL){
+            i--;
+            break;
+        }
 
+        ptr++;
+        ptr = strstr(ptr, ",");
+        ptr++;
+        norNumDb[i][0] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][1] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][2] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][3] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][4] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        norNumDb[i][5] = atoi(ptr);
+
+        ptr = strstr(ptr, "  ");
+        ptr += 2;
+        specNumDb[i][0] = atoi(ptr);
+
+       // printf("%d, %d, %d, %d, %d, %d, %d\n", norNumDb[i][0], norNumDb[i][1], norNumDb[i][2], norNumDb[i][3], norNumDb[i][4], norNumDb[i][5],
+       //                                          specNumDb[i][0]); // ‰≥ˆ
+        //printf("%s\n", StrLine); // ‰≥ˆ
+        if(i>=4095)
+            break;
+        i++;
+    }
+
+    // ÷ÿ–¬≈≈–Ú£¨–Ú∫≈‘Ω¥Ûµƒ ˝æ›‘Ω–¬
+    maxPhase = i;
+    for(i = 0; i < (maxPhase+1)/2; i++){
+        for(j = 0; j < NORMAL_NUM; j++){
+            dataTemp[j] = norNumDb[i][j];
+            norNumDb[i][j] = norNumDb[maxPhase-i][j];
+            norNumDb[maxPhase-i][j] = dataTemp[j];
+        }
+
+        for(j = 0; j < SPE_NUM; j++){
+            dataTemp[j] = specNumDb[i][j];
+            specNumDb[i][j] = specNumDb[maxPhase-i][j];
+            specNumDb[maxPhase-i][j] = dataTemp[j];
+        }
+    }
+}
+
+int nomalWeightOccur[NORMAL_NUM];
+int speWeightOccur[SPE_NUM];
 
 int main()
 {
-    uint32_t maxPhase, i;
+    int i, j, k, m, n, cnt;
+    int normalSumTemp[NORMAL_NUM_MAX], speSumTemp[SPECIAL_NUM_MAX];
+    int normalWeight[NORMAL_NUM_MAX], specWeight[SPECIAL_NUM_MAX], normalWeightSum[NORMAL_NUM_MAX], specWeightSum[SPECIAL_NUM_MAX];
+    // printf("**************Congratulations**************\n");
 
-    printf("**************Congratulations, make a big asset!**************\n");
+    GetTheSSQ_Data();
+    memset(normalSumTemp, 0, sizeof(int)*NORMAL_NUM_MAX);
+    memset(speSumTemp, 0, sizeof(int)*SPECIAL_NUM_MAX);
 
-    for(i = ANALYSIS_PHASE-1; i < maxPhase; i++)
-    {
+    memset(normalWeight, 0, sizeof(int)*NORMAL_NUM_MAX);
+    memset(specWeight, 0, sizeof(int)*SPECIAL_NUM_MAX);
+
+
+    memset(normalWeightSum, 0, sizeof(int)*NORMAL_NUM_MAX);
+    memset(specWeightSum, 0, sizeof(int)*SPECIAL_NUM_MAX);
+
+    k =0;
+    while(1){
+        for(i = maxPhase-ANALYSIS_PHASE-1; i < (maxPhase-ANALYSIS_PHASE); i++){
+
+            memset(normalSumTemp, 0, sizeof(int)*NORMAL_NUM_MAX);
+            memset(speSumTemp, 0, sizeof(int)*SPECIAL_NUM_MAX);
+
+            memset(normalWeight, 0, sizeof(int)*NORMAL_NUM_MAX);
+            memset(specWeight, 0, sizeof(int)*SPECIAL_NUM_MAX);
+
+            // ªÒ»°∏√∆⁄º‰ƒ⁄∏˜∏ˆ ˝æ›≥ˆœ÷µƒ∆µ¬ 
+            GetDataSum(i, i+ANALYSIS_PHASE, normalSumTemp, speSumTemp);
+
+            // º∆À„≥ˆ∏√∆⁄º‰µƒ»®÷ÿ
+            GetNormalWeight(normalSumTemp, normalWeight);
+            cnt = 0;
+
+
+
+            GetSpeWeight(speSumTemp, specWeight);
+
+            // œ¬“ª∏ˆ ˝æ›≥ˆœ÷‘⁄ƒƒ∏ˆ»®÷ÿ∑∂Œß
+            printf("weight occur: "); // ‰≥ˆ
+            for(j = 0; j < NORMAL_NUM; j++){
+                normalWeightSum[normalWeight[norNumDb[i+ANALYSIS_PHASE+1][j]]]++;
+                printf("%d, ", normalWeight[norNumDb[i+ANALYSIS_PHASE+1][j]]); // ‰≥ˆ
+
+                nomalWeightOccur[j] = normalWeight[norNumDb[i+ANALYSIS_PHASE+1][j]];
+            }
+            printf("\n"); // ‰≥ˆ
+
+            for(j = 0; j < NORMAL_NUM; j++){
+                for(m = j+1; m < NORMAL_NUM; m++){
+                    if(nomalWeightOccur[j] == nomalWeightOccur[m]){
+                        nomalWeightOccur[m] = 0;
+                    }
+                }
+            }
+            for(n = 0; n < NORMAL_NUM_MAX; n++){
+                if(normalWeight[n] == 0 || (nomalWeightOccur[n] == 0))
+                    continue;
+                if(
+                    (normalWeight[n] == nomalWeightOccur[0]) ||
+                    (normalWeight[n] == nomalWeightOccur[1]) ||
+                    (normalWeight[n] == nomalWeightOccur[2]) ||
+                    (normalWeight[n] == nomalWeightOccur[3]) ||
+                   (normalWeight[n] == nomalWeightOccur[4]) ||
+                   (normalWeight[n] == nomalWeightOccur[5])
+                    ){
+                        cnt++;
+                    }
+
+            }
+            printf("Nor Weight cnt %d\n", cnt); // ‰≥ˆ
+
+
+            for(j = 0; j < NORMAL_NUM; j++){
+                specWeightSum[specWeight[specNumDb[i+ANALYSIS_PHASE+1][j]]]++;
+            }
+
+            k++;
+            if(k == 100){
+                k = 0;
+                for(m = 0; m < ANALYSIS_PHASE; m++){
+                    printf("Nor Weight %d:%d\n", m, normalWeightSum[m]); // ‰≥ˆ
+                }
+                for(m = 0; m < ANALYSIS_PHASE; m++){
+                    // printf("spe Weight %d:%d\n", m, specWeightSum[m]); // ‰≥ˆ
+                }
+            }
+        }
 
     }
 
